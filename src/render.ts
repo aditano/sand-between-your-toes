@@ -1,4 +1,6 @@
+import type { BeachLoot, CollectKind, CoinVariant, ShellVariant } from "./collectibles";
 import { rgbCss, skyAt, type Sky } from "./palette";
+import type { Penguin } from "./penguins";
 import { sandToScreen, sandTop, type View } from "./project";
 import type { ShoreSim } from "./sim";
 
@@ -38,6 +40,40 @@ function shadeSand(
     Math.min(1, (baseG * (1 - shadow) + shade[1] * shadow) * light),
     Math.min(1, (baseB * (1 - shadow) + shade[2] * shadow) * light),
   ];
+}
+
+function shellTint(variant: ShellVariant, sky: Sky): [number, number, number] {
+  switch (variant) {
+    case "cockle":
+      return sky.foam;
+    case "spiral":
+      return sky.sunGlow;
+    case "scallop":
+      return [0.95, 0.72, 0.62];
+    case "conch":
+      return [0.9, 0.55, 0.42];
+    case "pearl":
+      return [0.92, 0.95, 0.98];
+    default: {
+      const leftover: never = variant;
+      return leftover;
+    }
+  }
+}
+
+function coinTint(variant: CoinVariant): [number, number, number] {
+  switch (variant) {
+    case "copper":
+      return [0.78, 0.45, 0.22];
+    case "silver":
+      return [0.82, 0.86, 0.9];
+    case "gold":
+      return [0.95, 0.78, 0.28];
+    default: {
+      const leftover: never = variant;
+      return leftover;
+    }
+  }
 }
 
 export function createPainter(canvas: HTMLCanvasElement): ShorePainter | null {
@@ -160,7 +196,6 @@ export function createPainter(canvas: HTMLCanvasElement): ShorePainter | null {
     }
     sandCtx.putImageData(data, 0, 0);
     const top = sandTop(view);
-    // Soft enough for dunes, sharp enough that digs read as footprints.
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = "medium";
     ctx.drawImage(sandCanvas, 0, top - 2, view.w, view.h - top + 4);
@@ -194,39 +229,116 @@ export function createPainter(canvas: HTMLCanvasElement): ShorePainter | null {
     ctx.restore();
   }
 
-  function paintShell(
-    u: number,
-    v: number,
-    size: number,
-    hue: number,
-    buried: number,
-    view: View,
-    sky: Sky,
-  ): void {
-    if (buried > 0.85) return;
-    const p = sandToScreen(u, v, view);
-    const s = size * Math.min(view.w, view.h);
-    const alpha = 1 - buried;
+  function paintShellLoot(item: BeachLoot, view: View, sky: Sky, alpha: number): void {
+    const p = sandToScreen(item.u, item.v, view);
+    const s = item.size * Math.min(view.w, view.h) * (1 + item.spark * 0.8);
+    const variant = item.variant as ShellVariant;
     ctx.save();
-    ctx.translate(p.x, p.y);
-    ctx.rotate(hue * Math.PI);
-    ctx.fillStyle = rgbCss(
-      hue < 0.33 ? sky.foam : hue < 0.66 ? sky.sunGlow : sky.sandShade,
-      0.55 + alpha * 0.4,
-    );
-    ctx.beginPath();
-    ctx.ellipse(0, 0, s, s * 0.65, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = `rgba(90, 55, 35, ${0.25 * alpha})`;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(-s * 0.6, 0);
-    ctx.quadraticCurveTo(0, -s * 0.4, s * 0.6, 0);
-    ctx.stroke();
+    ctx.translate(p.x, p.y - item.spark * 18);
+    ctx.rotate(item.angle + item.wash * 0.4);
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = rgbCss(shellTint(variant, sky), 0.75 + alpha * 0.2);
+    if (variant === "spiral" || variant === "conch") {
+      ctx.beginPath();
+      ctx.moveTo(-s * 0.2, s * 0.55);
+      ctx.quadraticCurveTo(-s * 1.1, 0, 0, -s * 0.7);
+      ctx.quadraticCurveTo(s * 1.05, 0, s * 0.25, s * 0.55);
+      ctx.closePath();
+      ctx.fill();
+    } else {
+      ctx.beginPath();
+      ctx.ellipse(0, 0, s * (variant === "scallop" ? 1.15 : 1), s * 0.7, 0, 0, Math.PI * 2);
+      ctx.fill();
+      if (variant === "scallop") {
+        ctx.strokeStyle = `rgba(90, 55, 35, ${0.28 * alpha})`;
+        ctx.lineWidth = 1;
+        for (let i = -2; i <= 2; i += 1) {
+          ctx.beginPath();
+          ctx.moveTo(0, s * 0.15);
+          ctx.quadraticCurveTo(i * s * 0.35, -s * 0.1, i * s * 0.55, -s * 0.45);
+          ctx.stroke();
+        }
+      }
+      if (variant === "pearl") {
+        ctx.fillStyle = "rgba(255,255,255,0.55)";
+        ctx.beginPath();
+        ctx.arc(0, 0, s * 0.28, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
     ctx.restore();
   }
 
-  function paintCastle(u: number, v: number, height: number, life: number, view: View): void {
+  function paintCoinLoot(item: BeachLoot, view: View, alpha: number): void {
+    const p = sandToScreen(item.u, item.v, view);
+    const s = item.size * Math.min(view.w, view.h) * (1 + item.spark * 0.7);
+    const tint = coinTint(item.variant as CoinVariant);
+    ctx.save();
+    ctx.translate(p.x, p.y - item.spark * 20);
+    ctx.rotate(item.angle);
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = rgbCss(tint, 0.92);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, s, s * 0.86, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = `rgba(70, 45, 20, ${0.35 * alpha})`;
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+    ctx.fillStyle = `rgba(255, 240, 200, ${0.35 * alpha})`;
+    ctx.beginPath();
+    ctx.arc(-s * 0.2, -s * 0.2, s * 0.22, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function paintCastleLoot(item: BeachLoot, view: View, alpha: number): void {
+    const p = sandToScreen(item.u, item.v, view);
+    const fort = item.variant === "fort";
+    const s = item.size * Math.min(view.w, view.h) * (fort ? 1.35 : 1) * (1 + item.spark * 0.5);
+    ctx.save();
+    ctx.translate(p.x, p.y - item.spark * 16);
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = "#e2bc82";
+    ctx.fillRect(-s, -s * 1.05, s * 2, s * 1.25);
+    ctx.fillRect(-s * 1.1, -s * 1.4, s * 0.5, s * 0.4);
+    ctx.fillRect(s * 0.6, -s * 1.4, s * 0.5, s * 0.4);
+    if (fort) ctx.fillRect(-s * 0.25, -s * 1.7, s * 0.5, s * 0.45);
+    ctx.fillStyle = "rgba(90, 55, 30, 0.35)";
+    ctx.fillRect(-s * 0.2, -s * 0.25, s * 0.4, s * 0.45);
+    ctx.restore();
+  }
+
+  function paintLoot(item: BeachLoot, view: View, sky: Sky): void {
+    if (item.buried > 0.88 && item.spark <= 0) return;
+    const alpha = item.spark > 0 ? item.spark : Math.max(0.15, 1 - item.buried);
+    if (item.buried > 0.55 && item.spark <= 0) {
+      // Hint of a bump under the sand.
+      const p = sandToScreen(item.u, item.v, view);
+      const s = item.size * Math.min(view.w, view.h) * 0.7;
+      ctx.fillStyle = `rgba(120, 80, 45, ${(0.88 - item.buried) * 0.55})`;
+      ctx.beginPath();
+      ctx.ellipse(p.x, p.y, s * 1.2, s * 0.55, 0, 0, Math.PI * 2);
+      ctx.fill();
+      return;
+    }
+    switch (item.kind) {
+      case "shell":
+        paintShellLoot(item, view, sky, alpha);
+        break;
+      case "coin":
+        paintCoinLoot(item, view, alpha);
+        break;
+      case "castle":
+        paintCastleLoot(item, view, alpha);
+        break;
+      default: {
+        const leftover: never = item.kind;
+        void leftover;
+      }
+    }
+  }
+
+  function paintBuiltCastle(u: number, v: number, height: number, life: number, view: View): void {
     const p = sandToScreen(u, v, view);
     const s = Math.min(view.w, view.h) * 0.035 * height;
     ctx.save();
@@ -238,24 +350,6 @@ export function createPainter(canvas: HTMLCanvasElement): ShorePainter | null {
     ctx.fillRect(p.x - s * 0.28, p.y - s * 1.85, s * 0.55, s * 0.55);
     ctx.fillStyle = "rgba(90, 55, 30, 0.35)";
     ctx.fillRect(p.x - s * 0.22, p.y - s * 0.35, s * 0.45, s * 0.55);
-    ctx.restore();
-  }
-
-  function paintTreasure(u: number, v: number, buried: number, view: View): void {
-    if (buried > 0.4) return;
-    const p = sandToScreen(u, v, view);
-    const s = Math.min(view.w, view.h) * 0.028;
-    ctx.save();
-    ctx.translate(p.x, p.y);
-    ctx.rotate(-0.4);
-    ctx.fillStyle = "#c3a15a";
-    ctx.fillRect(-s, -s * 0.45, s * 2, s * 0.9);
-    ctx.strokeStyle = "#8a6a32";
-    ctx.strokeRect(-s, -s * 0.45, s * 2, s * 0.9);
-    ctx.fillStyle = "#6ea8b8";
-    ctx.beginPath();
-    ctx.arc(0, 0, s * 0.28, 0, Math.PI * 2);
-    ctx.fill();
     ctx.restore();
   }
 
@@ -286,13 +380,7 @@ export function createPainter(canvas: HTMLCanvasElement): ShorePainter | null {
     ctx.restore();
   }
 
-  function paintGull(
-    u: number,
-    v: number,
-    wing: number,
-    view: View,
-    sky: Sky,
-  ): void {
+  function paintGull(u: number, v: number, wing: number, view: View, sky: Sky): void {
     const x = u * view.w;
     const y = sandTop(view) * (0.15 + v);
     const flap = Math.sin(wing) * 0.55;
@@ -309,6 +397,130 @@ export function createPainter(canvas: HTMLCanvasElement): ShorePainter | null {
     ctx.beginPath();
     ctx.ellipse(0, 0, 4, 2.2, 0, 0, Math.PI * 2);
     ctx.fill();
+    ctx.restore();
+  }
+
+  function paintPenguin(bird: Penguin, view: View, reduceMotion: boolean): void {
+    const p = sandToScreen(bird.u, bird.v, view);
+    const scale = Math.min(view.w, view.h);
+    const s = scale * 0.018;
+    const waddle = reduceMotion ? 0 : Math.sin(bird.phase) * (bird.mood === "huddle" ? 0.4 : 1.6);
+    const lean = bird.facing * (bird.mood === "swim" ? 0.35 : 0.12);
+    ctx.save();
+    ctx.translate(p.x, p.y + bird.bob * 1.2);
+    ctx.rotate(lean);
+    ctx.scale(bird.facing, 1);
+
+    // Soft contact shadow.
+    ctx.fillStyle = "rgba(60, 40, 25, 0.18)";
+    ctx.beginPath();
+    ctx.ellipse(0, s * 1.15, s * 0.9, s * 0.28, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Body: African penguin black back, white belly, pinkish feet.
+    ctx.fillStyle = "#1d2430";
+    ctx.beginPath();
+    ctx.ellipse(0, 0, s * 0.72, s * 1.15, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#f4f0ea";
+    ctx.beginPath();
+    ctx.ellipse(0, s * 0.12, s * 0.48, s * 0.85, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Black chest band.
+    ctx.strokeStyle = "#1d2430";
+    ctx.lineWidth = Math.max(1.2, s * 0.18);
+    ctx.beginPath();
+    ctx.moveTo(-s * 0.42, -s * 0.05);
+    ctx.quadraticCurveTo(0, s * 0.15, s * 0.42, -s * 0.05);
+    ctx.stroke();
+
+    // Head.
+    ctx.fillStyle = "#1d2430";
+    ctx.beginPath();
+    ctx.arc(0, -s * 1.05, s * 0.48, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#f4f0ea";
+    ctx.beginPath();
+    ctx.ellipse(s * 0.08, -s * 0.95, s * 0.22, s * 0.28, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Eye and beak.
+    ctx.fillStyle = "#f7f7f7";
+    ctx.beginPath();
+    ctx.arc(s * 0.16, -s * 1.12, s * 0.12, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#1a1512";
+    ctx.beginPath();
+    ctx.arc(s * 0.18, -s * 1.12, s * 0.06, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#d98a3a";
+    ctx.beginPath();
+    ctx.moveTo(s * 0.28, -s * 1.0);
+    ctx.lineTo(s * 0.62, -s * 0.95);
+    ctx.lineTo(s * 0.28, -s * 0.88);
+    ctx.closePath();
+    ctx.fill();
+
+    // Flippers.
+    const flap = reduceMotion ? 0 : Math.sin(bird.phase * 1.3) * 0.35;
+    ctx.fillStyle = "#1d2430";
+    ctx.save();
+    ctx.translate(-s * 0.55, -s * 0.1);
+    ctx.rotate(-0.5 + flap);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, s * 0.22, s * 0.55, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    ctx.save();
+    ctx.translate(s * 0.55, -s * 0.05);
+    ctx.rotate(0.45 - flap);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, s * 0.2, s * 0.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // Feet.
+    ctx.fillStyle = "#e29a62";
+    ctx.beginPath();
+    ctx.ellipse(-s * 0.22 + waddle * 0.15, s * 1.05, s * 0.22, s * 0.12, -0.2, 0, Math.PI * 2);
+    ctx.ellipse(s * 0.22 - waddle * 0.15, s * 1.05, s * 0.22, s * 0.12, 0.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (bird.mood === "friend") {
+      ctx.fillStyle = "rgba(255, 210, 160, 0.55)";
+      ctx.beginPath();
+      ctx.arc(s * 0.7, -s * 1.5, s * 0.18, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    if (bird.mood === "peck") {
+      ctx.translate(0, s * 0.15);
+      ctx.rotate(0.35);
+    }
+    ctx.restore();
+  }
+
+  function paintScorePop(
+    u: number,
+    v: number,
+    points: number,
+    life: number,
+    kind: CollectKind,
+    view: View,
+  ): void {
+    const p = sandToScreen(u, v, view);
+    const rise = (1 - life) * 28;
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, Math.min(1, life * 1.4));
+    ctx.font = `600 ${Math.max(14, Math.min(view.w, view.h) * 0.032)}px "Segoe UI", system-ui, sans-serif`;
+    ctx.textAlign = "center";
+    ctx.fillStyle =
+      kind === "coin" ? "#ffe08a" : kind === "castle" ? "#f0d2a0" : "#fff6ea";
+    ctx.strokeStyle = "rgba(40, 24, 12, 0.35)";
+    ctx.lineWidth = 3;
+    const text = `+${points}`;
+    ctx.strokeText(text, p.x, p.y - rise);
+    ctx.fillText(text, p.x, p.y - rise);
     ctx.restore();
   }
 
@@ -345,20 +557,28 @@ export function createPainter(canvas: HTMLCanvasElement): ShorePainter | null {
       paintSea(view, sim, sky);
       paintSandField(sim, view, sky);
       paintGrains(sim, view, sky);
-      for (const shell of sim.shells) {
-        paintShell(shell.u, shell.v, shell.size, shell.hue, shell.buried, view, sky);
-      }
-      if (sim.treasure?.found) {
-        paintTreasure(sim.treasure.u, sim.treasure.v, sim.treasure.buried, view);
-      }
+
+      // Sort loot by v so nearer items paint over farther ones.
+      const ordered = sim.loot.slice().sort((a, b) => a.v - b.v);
+      for (const item of ordered) paintLoot(item, view, sky);
+
       for (const castle of sim.castles) {
-        paintCastle(castle.u, castle.v, castle.height, castle.life, view);
+        paintBuiltCastle(castle.u, castle.v, castle.height, castle.life, view);
       }
+
+      // Penguins under the crab / feet so toes can still cover them.
+      const colony = sim.penguins.slice().sort((a, b) => a.v - b.v);
+      for (const bird of colony) paintPenguin(bird, view, reduceMotion);
+
       paintCrab(sim.crab.u, sim.crab.v, sim.crab.spook, sim.time, view);
       for (const foot of sim.feet.values()) {
         paintFoot(foot.u, foot.v, foot.radius, foot.bury, view);
       }
       if (sim.gull) paintGull(sim.gull.u, sim.gull.v, sim.gull.wing, view, sky);
+
+      for (const pop of sim.pops) {
+        paintScorePop(pop.u, pop.v, pop.points, pop.life, pop.kind, view);
+      }
 
       const veil = ctx.createLinearGradient(0, sandTop(view), 0, view.h);
       veil.addColorStop(0, "rgba(255, 214, 160, 0)");

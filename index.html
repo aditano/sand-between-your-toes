@@ -9,7 +9,7 @@
     <meta name="theme-color" content="#e39a58" />
     <meta
       name="description"
-      content="Sand Between Your Toes. A calm beach toy. Wiggle your toes in the sand and let the tide edit your work."
+      content="Sand Between Your Toes. Dig for shells, coins, and buried castles. Meet tiny African penguins on a golden-hour beach."
     />
     <meta name="color-scheme" content="light" />
     <meta name="mobile-web-app-capable" content="yes" />
@@ -27,7 +27,7 @@
     <meta property="og:title" content="Sand Between Your Toes" />
     <meta
       property="og:description"
-      content="A calm beach toy. Wiggle your toes in the sand and let the tide edit your work."
+      content="Dig for shells, coins, and buried castles. Meet tiny African penguins on a golden-hour beach."
     />
     <meta property="og:url" content="https://aditano.github.io/sand-between-your-toes/" />
     <meta property="og:image" content="https://aditano.github.io/sand-between-your-toes/og.png" />
@@ -38,7 +38,7 @@
     <meta name="twitter:title" content="Sand Between Your Toes" />
     <meta
       name="twitter:description"
-      content="A calm beach toy. Wiggle your toes in the sand and let the tide edit your work."
+      content="Dig for shells, coins, and buried castles. Meet tiny African penguins on a golden-hour beach."
     />
     <meta name="twitter:image" content="https://aditano.github.io/sand-between-your-toes/og.png" />
 
@@ -64,7 +64,11 @@
   </head>
   <body>
     <div id="app">
-      <canvas id="view" role="application" aria-label="Beach. Drag to wriggle toes in the sand."></canvas>
+      <canvas
+        id="view"
+        role="application"
+        aria-label="Beach. Dig for shells, coins, and castles. Tiny African penguins live here."
+      ></canvas>
       <div class="scrim" aria-hidden="true"></div>
       <div class="vignette" aria-hidden="true"></div>
       <header class="top">
@@ -100,10 +104,35 @@
           />
         </svg>
       </button>
-      <p class="hint" id="hint">Drag through the sand</p>
+      <p class="hint" id="hint">Dig through the sand</p>
       <footer class="hud">
         <p class="quip" id="quip" aria-live="polite"></p>
         <div class="card">
+          <div class="score-row" role="group" aria-label="Beach haul">
+            <div class="stat score-stat">
+              <span class="stat-value" id="score">0</span>
+              <span class="stat-label">points</span>
+              <span class="best" id="score-best"></span>
+            </div>
+            <div class="collection" aria-label="Collection counts">
+              <div class="chip">
+                <span class="chip-icon shell-icon" aria-hidden="true"></span>
+                <span class="chip-count" id="count-shells">0</span>
+                <span class="chip-label">shells</span>
+              </div>
+              <div class="chip">
+                <span class="chip-icon coin-icon" aria-hidden="true"></span>
+                <span class="chip-count" id="count-coins">0</span>
+                <span class="chip-label">coins</span>
+              </div>
+              <div class="chip">
+                <span class="chip-icon castle-icon" aria-hidden="true"></span>
+                <span class="chip-count" id="count-castles">0</span>
+                <span class="chip-label">castles</span>
+              </div>
+            </div>
+          </div>
+          <p class="finds" id="finds">Dig for shells, coins, and buried castles</p>
           <div class="stats" role="group" aria-label="How ashore you are">
             <div class="stat">
               <span class="stat-value" id="wiggles">0</span>

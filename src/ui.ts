@@ -28,6 +28,12 @@ function must<T extends Element>(selector: string): T {
 export function bindHud(): Hud {
   const hint = must<HTMLElement>("#hint");
   const quip = must<HTMLElement>("#quip");
+  const score = must<HTMLElement>("#score");
+  const scoreBest = must<HTMLElement>("#score-best");
+  const shells = must<HTMLElement>("#count-shells");
+  const coins = must<HTMLElement>("#count-coins");
+  const castles = must<HTMLElement>("#count-castles");
+  const finds = must<HTMLElement>("#finds");
   const wiggles = must<HTMLElement>("#wiggles");
   const streak = must<HTMLElement>("#streak");
   const best = must<HTMLElement>("#best");
@@ -38,6 +44,12 @@ export function bindHud(): Hud {
   const theme = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
 
   let quipTimer = 0;
+  let lastScore = "";
+  let lastScoreBest = "";
+  let lastShells = "";
+  let lastCoins = "";
+  let lastCastles = "";
+  let lastFinds = "";
   let lastWiggles = "";
   let lastStreak = "";
   let lastBest = "";
@@ -65,13 +77,52 @@ export function bindHud(): Hud {
       window.clearTimeout(quipTimer);
       quipTimer = window.setTimeout(() => {
         quip.classList.remove("is-on");
-        // Clear so :empty hides the bubble after it fades.
         window.setTimeout(() => {
           if (!quip.classList.contains("is-on")) quip.textContent = "";
         }, 380);
       }, 3400);
     },
     render(view) {
+      const scoreText = String(view.score);
+      if (scoreText !== lastScore) {
+        if (lastScore !== "") pulse(score);
+        score.textContent = scoreText;
+        lastScore = scoreText;
+      }
+      const scoreBestText = view.scoreBest > 0 ? `best ${view.scoreBest}` : "";
+      if (scoreBestText !== lastScoreBest) {
+        scoreBest.textContent = scoreBestText;
+        lastScoreBest = scoreBestText;
+      }
+
+      const shellsText = String(view.collection.shells);
+      if (shellsText !== lastShells) {
+        if (lastShells !== "") pulse(shells);
+        shells.textContent = shellsText;
+        lastShells = shellsText;
+      }
+      const coinsText = String(view.collection.coins);
+      if (coinsText !== lastCoins) {
+        if (lastCoins !== "") pulse(coins);
+        coins.textContent = coinsText;
+        lastCoins = coinsText;
+      }
+      const castlesText = String(view.collection.castles);
+      if (castlesText !== lastCastles) {
+        if (lastCastles !== "") pulse(castles);
+        castles.textContent = castlesText;
+        lastCastles = castlesText;
+      }
+
+      const findsText =
+        view.recent.length === 0
+          ? "Dig for shells, coins, and buried castles"
+          : view.recent.slice(0, 4).join(" · ");
+      if (findsText !== lastFinds) {
+        finds.textContent = findsText;
+        lastFinds = findsText;
+      }
+
       const wiggleText = String(view.wiggles);
       if (wiggleText !== lastWiggles) {
         if (lastWiggles !== "") pulse(wiggles);
