@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+*.local
+.DS_Store
+.playwright-mcp/
+*.log
