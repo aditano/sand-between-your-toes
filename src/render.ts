@@ -160,7 +160,9 @@ export function createPainter(canvas: HTMLCanvasElement): ShorePainter | null {
     }
     sandCtx.putImageData(data, 0, 0);
     const top = sandTop(view);
+    // Soft enough for dunes, sharp enough that digs read as footprints.
     ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "medium";
     ctx.drawImage(sandCanvas, 0, top - 2, view.w, view.h - top + 4);
   }
 

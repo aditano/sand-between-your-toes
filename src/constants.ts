@@ -1,5 +1,5 @@
-export const COLS = 128;
-export const ROWS = 96;
+export const COLS = 120;
+export const ROWS = 90;
 export const MAX_POINTERS = 5;
 export const MAX_GRAINS = 160;
 

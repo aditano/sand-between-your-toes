@@ -83,7 +83,7 @@ export class Session {
   }
 
   announce(text: string, force: boolean): void {
-    if (!force && this.ashoreSeconds - this.lastQuipAt < 1.6) return;
+    if (!force && this.ashoreSeconds - this.lastQuipAt < 1.15) return;
     this.lastQuipAt = this.ashoreSeconds;
     this.onQuip(text);
   }
@@ -104,7 +104,8 @@ export class Session {
     if (this.seenMoods.has(mood)) return;
     this.seenMoods.add(mood);
     const line = moodQuip(mood);
-    if (line) this.announce(line, false);
+    // Mood lines are rare milestones. Let them interrupt the cooldown.
+    if (line) this.announce(line, true);
   }
 
   private hit(now: number, fromPress: boolean, speak: boolean): void {
@@ -113,7 +114,9 @@ export class Session {
     this.streak += 1;
     this.wiggles += 1;
     this.lastTouch = now;
-    this.vacation = Math.min(100, this.vacation + 7.2 * (1 - this.vacation / 150));
+    // Presses count more than strokes so a long swipe does not empty the inbox instantly.
+    const bump = fromPress ? 3.4 : 1.15;
+    this.vacation = Math.min(100, this.vacation + bump * (1 - this.vacation / 140));
 
     let line: string | null = null;
     if (first) line = FIRST_TOUCH;
@@ -127,7 +130,7 @@ export class Session {
       }
     }
     if (!line) line = streakQuip(this.streak);
-    if (!line && speak && fromPress && this.wiggles % 4 === 0) line = pickQuip();
+    if (!line && (speak || this.streak % 12 === 0) && this.wiggles % 5 === 0) line = pickQuip();
     if (line) this.announce(line, first);
     this.noteMood();
   }

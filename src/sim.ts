@@ -98,7 +98,14 @@ export type ShoreSim = {
   resize: (cols: number, rows: number) => void;
   dig: (u: number, v: number, radius: number, force: number, scoop: number) => BeachEvent[];
   press: (id: number, u: number, v: number, radius: number) => BeachEvent[];
-  drag: (id: number, u: number, v: number, radius: number, force: number) => BeachEvent[];
+  drag: (
+    id: number,
+    u: number,
+    v: number,
+    radius: number,
+    force: number,
+    scoop?: number,
+  ) => BeachEvent[];
   release: (id: number) => BeachEvent[];
   tick: (dt: number, reduceMotion: boolean) => BeachEvent[];
   sampleWet: (u: number, v: number) => number;
@@ -139,9 +146,10 @@ function fillWet(wet: Float32Array, cols: number, rows: number, tide: number): v
   for (let y = 0; y < rows; y += 1) {
     for (let x = 0; x < cols; x += 1) {
       const v = y / rows;
-      const shore = 0.12 + tide * 0.18;
-      const damp = clamp(1 - (v - shore) / 0.28, 0, 1);
-      wet[idx(x, y, cols)] = damp * damp * (0.55 + noise2(x * 0.2, y * 0.17) * 0.2);
+      const shore = 0.08 + tide * 0.14;
+      // Keep most of the beach warm and dry. Only the waterline goes dark.
+      const damp = clamp(1 - (v - shore) / 0.18, 0, 1);
+      wet[idx(x, y, cols)] = damp * damp * (0.62 + noise2(x * 0.2, y * 0.17) * 0.18);
     }
   }
 }
@@ -151,10 +159,11 @@ function spawnShells(rng: () => number, count: number): Shell[] {
   for (let i = 0; i < count; i += 1) {
     shells.push({
       u: 0.08 + rng() * 0.84,
-      v: 0.22 + rng() * 0.7,
+      v: 0.28 + rng() * 0.62,
       size: 0.012 + rng() * 0.018,
       hue: rng(),
-      buried: 0.35 + rng() * 0.55,
+      // Most shells start hidden so digging feels like a find.
+      buried: 0.55 + rng() * 0.4,
       found: false,
     });
   }
@@ -293,15 +302,16 @@ export function createSim(): ShoreSim {
   }
 
   function maybeCastle(u: number, v: number, scoop: number): BeachEvent | null {
-    if (scoop < 0.55 || castles.length >= 3) return null;
-    if (v < 0.2 || v > 0.92) return null;
+    if (scoop < 0.48 || castles.length >= 3) return null;
+    if (v < 0.22 || v > 0.92) return null;
     for (const castle of castles) {
       const du = castle.u - u;
       const dv = castle.v - v;
-      if (du * du + dv * dv < 0.01) return null;
+      // One scoop usually makes one keep. Keep them spaced.
+      if (du * du + dv * dv < 0.045) return null;
     }
-    castles.push({ u, v: clamp(v, 0.25, 0.9), life: 1, height: 0.55 + scoop * 0.35 });
-    deform(u, v, 0.045, -0.08, 0.16, 0.08);
+    castles.push({ u, v: clamp(v, 0.26, 0.88), life: 1, height: 0.55 + scoop * 0.35 });
+    deform(u, v, 0.05, -0.1, 0.2, 0.1);
     return { kind: "castle" };
   }
 
@@ -377,22 +387,30 @@ export function createSim(): ShoreSim {
     dig(u, v, radius, force, scoop) {
       const events: BeachEvent[] = [];
       const wetness = sample(wet, u, v);
-      const digAmt = (0.035 + force * 0.06) * (wetness > 0.45 ? 0.72 : 1);
-      const pileAmt = digAmt * (0.55 + scoop * 0.7);
-      deform(u, v, radius, digAmt, pileAmt, wetness > 0.4 ? 0.02 : -0.01);
-      emitGrains(u, v, 4 + Math.floor(force * 8), force, wetness);
-      events.push(...checkDiscoveries(u, v, digAmt + force * 0.08));
-      const built = maybeCastle(u, v - radius * 0.4, scoop);
-      if (built) events.push(built);
-      for (let i = castles.length - 1; i >= 0; i -= 1) {
-        const castle = castles[i];
-        const du = castle.u - u;
-        const dv = castle.v - v;
-        if (du * du + dv * dv < radius * radius * 0.7 && force > 0.55) {
-          castles.splice(i, 1);
-          events.push({ kind: "erased", by: "touch" });
+      const digAmt = (0.045 + force * 0.075) * (wetness > 0.45 ? 0.78 : 1);
+      const pileAmt = digAmt * (0.6 + scoop * 0.85);
+      deform(u, v, radius, digAmt, pileAmt, wetness > 0.4 ? 0.025 : -0.012);
+      emitGrains(u, v, 5 + Math.floor(force * 9), force, wetness);
+      events.push(...checkDiscoveries(u, v, digAmt + force * 0.1));
+
+      // Scooping packs a castle. Digging (low scoop) can knock one over.
+      // Never erase in the same stroke that just built one.
+      if (scoop >= 0.48) {
+        // Pack the mound under the fingers, not farther toward the water.
+        const built = maybeCastle(u, clamp(v, 0.26, 0.88), scoop);
+        if (built) events.push(built);
+      } else if (force > 0.62) {
+        for (let i = castles.length - 1; i >= 0; i -= 1) {
+          const castle = castles[i];
+          const du = castle.u - u;
+          const dv = castle.v - v;
+          if (du * du + dv * dv < radius * radius * 0.85) {
+            castles.splice(i, 1);
+            events.push({ kind: "erased", by: "touch" });
+          }
         }
       }
+
       const spook =
         (crab.u - u) * (crab.u - u) + (crab.v - v) * (crab.v - v) < radius * radius * 2.4;
       if (spook && crab.spook <= 0) {
@@ -404,19 +422,21 @@ export function createSim(): ShoreSim {
     },
     press(id, u, v, radius) {
       feet.set(id, { id, u, v, radius, bury: 0.15, force: 1, active: true });
-      return api.dig(u, v, radius, 0.85, 0.2);
+      return api.dig(u, v, radius, 0.9, 0.15);
     },
-    drag(id, u, v, radius, force) {
+    drag(id, u, v, radius, force, scoop = 0.2) {
       const foot = feet.get(id);
       if (foot) {
         foot.u = u;
         foot.v = v;
         foot.radius = radius;
         foot.force = force;
-        foot.bury = clamp(foot.bury + force * 0.08, 0, 1);
+        // Scoops pack sand into castles. Only still-ish digs bury the feet.
+        if (scoop < 0.28) foot.bury = clamp(foot.bury + force * 0.055, 0, 1);
+        else foot.bury = clamp(foot.bury - scoop * 0.08, 0, 1);
       }
-      const events = api.dig(u, v, radius, force, force > 0.7 ? 0.75 : 0.25);
-      if (foot && foot.bury > 0.82 && !buriedOnce) {
+      const events = api.dig(u, v, radius, force, scoop);
+      if (foot && scoop < 0.28 && foot.bury > 0.88 && !buriedOnce) {
         buriedOnce = true;
         events.push({ kind: "bury" });
       }
@@ -426,7 +446,7 @@ export function createSim(): ShoreSim {
       const events: BeachEvent[] = [];
       const foot = feet.get(id);
       if (foot) {
-        if (foot.bury > 0.55) events.push({ kind: "unbury" });
+        if (foot.bury > 0.75) events.push({ kind: "unbury" });
         foot.active = false;
         feet.delete(id);
       }
@@ -455,12 +475,12 @@ export function createSim(): ShoreSim {
                 height[idx(x, y - 1, cols)] +
                 height[idx(x, y + 1, cols)]) *
               0.25;
-            height[i] += (avg - height[i]) * 0.018;
-            height[i] += (base[i] - height[i]) * 0.004;
-            const shore = 0.1 + tide * 0.2;
+            height[i] += (avg - height[i]) * 0.012;
+            height[i] += (base[i] - height[i]) * 0.0028;
+            const shore = 0.08 + tide * 0.14;
             const v = y / rows;
-            const targetWet = clamp(1 - (v - shore) / 0.3, 0, 1);
-            wet[i] += (targetWet * targetWet * 0.7 - wet[i]) * 0.02;
+            const targetWet = clamp(1 - (v - shore) / 0.18, 0, 1);
+            wet[i] += (targetWet * targetWet * 0.7 - wet[i]) * 0.018;
           }
         }
       }

@@ -15,6 +15,7 @@ type Finger = {
   markU: number;
   markV: number;
   radius: number;
+  scoop: number;
 };
 
 function prefersReducedMotion(): boolean {
@@ -38,7 +39,8 @@ function handleEvents(
 ): void {
   for (const event of events) {
     const line = discoveryQuip(event);
-    if (line) session.announce(line, false);
+    // Finds and critters should speak even if a streak line just fired.
+    if (line) session.announce(line, true);
     switch (event.kind) {
       case "shell":
         audio.blip("shell");
@@ -126,9 +128,10 @@ function main(): void {
 
   function chooseGrid(next: View): { cols: number; rows: number } {
     const area = next.w * next.h;
-    if (area < 500_000) return { cols: 96, rows: 72 };
-    if (area < 1_200_000) return { cols: 112, rows: 84 };
-    return { cols: 128, rows: 96 };
+    // Phones stay dense enough for crisp digs while keeping the iOS GPU calm.
+    if (area < 420_000) return { cols: 104, rows: 78 };
+    if (area < 1_100_000) return { cols: 120, rows: 90 };
+    return { cols: 140, rows: 104 };
   }
 
   function resize(): void {
@@ -167,6 +170,7 @@ function main(): void {
       markU: hit.u,
       markV: hit.v,
       radius,
+      scoop: 0,
     });
     const events = sim.press(event.pointerId, hit.u, hit.v, radius);
     audio.scrape(0.8, sim.sampleWet(hit.u, hit.v));
@@ -182,9 +186,19 @@ function main(): void {
     const dv = hit.v - finger.v;
     const dist = Math.hypot(du, dv);
     const force = Math.min(1, 0.35 + dist * 14);
+    // Scoop = upward pull. Build toward a castle when the drag climbs the beach.
+    const climb = Math.max(0, -dv);
+    finger.scoop = Math.min(1, finger.scoop * 0.78 + climb * 22);
     finger.u = hit.u;
     finger.v = hit.v;
-    const events = sim.drag(event.pointerId, hit.u, hit.v, finger.radius, force);
+    const events = sim.drag(
+      event.pointerId,
+      hit.u,
+      hit.v,
+      finger.radius,
+      force,
+      finger.scoop,
+    );
     const mu = hit.u - finger.markU;
     const mv = hit.v - finger.markV;
     if (mu * mu + mv * mv > 0.00045) {
@@ -223,6 +237,14 @@ function main(): void {
   canvas.addEventListener("pointerup", onUp);
   canvas.addEventListener("pointercancel", onUp);
   canvas.addEventListener("contextmenu", (event) => event.preventDefault());
+  // Older iOS Safari pinch-zoom gesture.
+  document.addEventListener(
+    "gesturestart",
+    (event) => {
+      event.preventDefault();
+    },
+    { passive: false },
+  );
 
   resize();
   window.addEventListener("resize", resize);

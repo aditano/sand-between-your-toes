@@ -65,6 +65,10 @@ export function bindHud(): Hud {
       window.clearTimeout(quipTimer);
       quipTimer = window.setTimeout(() => {
         quip.classList.remove("is-on");
+        // Clear so :empty hides the bubble after it fades.
+        window.setTimeout(() => {
+          if (!quip.classList.contains("is-on")) quip.textContent = "";
+        }, 380);
       }, 3400);
     },
     render(view) {
