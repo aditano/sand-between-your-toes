@@ -1,0 +1,19 @@
+{
+  "name": "sand-between-your-toes",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "homepage": "https://aditano.github.io/sand-between-your-toes/",
+  "description": "A calm beach toy. Wiggle your toes in the sand and let the tide edit your work.",
+  "license": "GPL-3.0-or-later",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 5173",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host 0.0.0.0 --port 4173",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "~5.8.3",
+    "vite": "^8.3.0"
+  }
+}

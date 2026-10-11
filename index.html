@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#e39a58" />
+    <meta
+      name="description"
+      content="Sand Between Your Toes. A calm beach toy. Wiggle your toes in the sand and let the tide edit your work."
+    />
+    <meta name="color-scheme" content="light" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Sandy Toes" />
+    <title>Sand Between Your Toes</title>
+
+    <link rel="icon" href="%BASE_URL%favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="%BASE_URL%favicon.svg" />
+    <link rel="manifest" href="%BASE_URL%site.webmanifest" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Sand Between Your Toes" />
+    <meta property="og:title" content="Sand Between Your Toes" />
+    <meta
+      property="og:description"
+      content="A calm beach toy. Wiggle your toes in the sand and let the tide edit your work."
+    />
+    <meta property="og:url" content="https://aditano.github.io/sand-between-your-toes/" />
+    <meta property="og:image" content="https://aditano.github.io/sand-between-your-toes/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Sand Between Your Toes" />
+    <meta
+      name="twitter:description"
+      content="A calm beach toy. Wiggle your toes in the sand and let the tide edit your work."
+    />
+    <meta name="twitter:image" content="https://aditano.github.io/sand-between-your-toes/og.png" />
+
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #e39a58;
+        overflow: hidden;
+      }
+      #app {
+        position: fixed;
+        inset: 0;
+      }
+      #view {
+        width: 100%;
+        height: 100%;
+        display: block;
+        touch-action: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="view" role="application" aria-label="Beach. Drag to wriggle toes in the sand."></canvas>
+      <div class="scrim" aria-hidden="true"></div>
+      <div class="vignette" aria-hidden="true"></div>
+      <header class="top">
+        <p class="eyebrow">Simulator</p>
+        <h1 class="brand"><span class="toe" aria-hidden="true"></span>Sand Between Your Toes</h1>
+      </header>
+      <button type="button" class="mute" id="mute" aria-label="Mute sound" aria-pressed="false">
+        <svg class="icon-on" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 10h3.2L12 6.2v11.6L7.2 14H4z" fill="currentColor" />
+          <path
+            d="M15.5 9.2a4.2 4.2 0 0 1 0 5.6"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.7"
+            stroke-linecap="round"
+          />
+          <path
+            d="M17.6 7a7 7 0 0 1 0 10"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.7"
+            stroke-linecap="round"
+          />
+        </svg>
+        <svg class="icon-off" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 10h3.2L12 6.2v11.6L7.2 14H4z" fill="currentColor" />
+          <path
+            d="M16 9.5 21 14.5M21 9.5 16 14.5"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.7"
+            stroke-linecap="round"
+          />
+        </svg>
+      </button>
+      <p class="hint" id="hint">Drag through the sand</p>
+      <footer class="hud">
+        <p class="quip" id="quip" aria-live="polite"></p>
+        <div class="card">
+          <div class="stats" role="group" aria-label="How ashore you are">
+            <div class="stat">
+              <span class="stat-value" id="wiggles">0</span>
+              <span class="stat-label">wiggles</span>
+            </div>
+            <div class="stat">
+              <span class="stat-value" id="streak">0</span>
+              <span class="stat-label">streak</span>
+              <span class="best" id="best"></span>
+            </div>
+            <div class="stat">
+              <span class="stat-value" id="mood">inbox</span>
+              <span class="stat-label">vacation</span>
+            </div>
+            <div class="stat">
+              <span class="stat-value" id="ashore">0:00</span>
+              <span class="stat-label">ashore</span>
+            </div>
+            <div class="vacay" aria-hidden="true"><span id="vacay-fill"></span></div>
+          </div>
+        </div>
+      </footer>
+      <p class="fallback" id="fallback" hidden>This beach needs a canvas. An actual shore also works.</p>
+    </div>
+    <noscript><p class="fallback">JavaScript brings the tide in.</p></noscript>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
