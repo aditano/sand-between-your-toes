@@ -1,4 +1,5 @@
 import { MUTE_KEY } from "./constants";
+import type { CollectKind } from "./collectibles";
 
 function readMuted(): boolean {
   try {
@@ -28,7 +29,8 @@ export type ShoreAudio = {
   scrape: (force: number, wet: number) => void;
   splash: () => void;
   cry: () => void;
-  blip: (kind: "shell" | "treasure" | "castle") => void;
+  blip: (kind: CollectKind | "friend" | "build") => void;
+  honk: (soft?: boolean) => void;
   wash: (amount: number) => void;
   toggleMuted: () => boolean;
   readonly muted: boolean;
@@ -44,6 +46,7 @@ export function createAudio(): ShoreAudio {
   let muted = readMuted();
   let lastScrape = 0;
   let lastSplash = 0;
+  let lastHonk = 0;
 
   function ensure(): AudioContext | null {
     if (context) return context;
@@ -183,20 +186,65 @@ export function createAudio(): ShoreAudio {
       tone(1680, 0.16, 0.02, "sine", 0.26);
     },
     blip(kind) {
-      if (kind === "shell") {
-        tone(880, 0.08, 0.04, "sine", 0);
-        tone(1320, 0.1, 0.03, "sine", 0.07);
-        return;
+      switch (kind) {
+        case "shell":
+          tone(880, 0.08, 0.04, "sine", 0);
+          tone(1320, 0.1, 0.03, "sine", 0.07);
+          break;
+        case "coin":
+          tone(988, 0.07, 0.035, "triangle", 0);
+          tone(1318, 0.1, 0.03, "triangle", 0.06);
+          tone(1568, 0.12, 0.025, "sine", 0.12);
+          break;
+        case "castle":
+          tone(392, 0.1, 0.03, "triangle", 0);
+          tone(523, 0.12, 0.028, "triangle", 0.08);
+          tone(659, 0.16, 0.026, "triangle", 0.16);
+          break;
+        case "friend":
+          tone(523, 0.1, 0.03, "sine", 0);
+          tone(659, 0.12, 0.028, "sine", 0.1);
+          tone(784, 0.16, 0.025, "sine", 0.2);
+          break;
+        case "build":
+          tone(349, 0.1, 0.028, "triangle", 0);
+          tone(440, 0.12, 0.024, "triangle", 0.08);
+          break;
+        default: {
+          const leftover: never = kind;
+          void leftover;
+        }
       }
-      if (kind === "treasure") {
-        tone(523, 0.12, 0.035, "sine", 0);
-        tone(659, 0.14, 0.032, "sine", 0.1);
-        tone(784, 0.2, 0.03, "sine", 0.2);
-        return;
-      }
-      tone(392, 0.1, 0.03, "triangle", 0);
-      tone(523, 0.12, 0.028, "triangle", 0.08);
-      tone(659, 0.16, 0.026, "triangle", 0.16);
+    },
+    honk(soft = false) {
+      const ctx = ensure();
+      if (!ctx || !master || muted) return;
+      const now = ctx.currentTime;
+      if (now - lastHonk < (soft ? 0.45 : 0.7)) return;
+      lastHonk = now;
+      // Tiny donkey-bray vibe, kept soft for African penguin chatter.
+      const osc = ctx.createOscillator();
+      osc.type = "sawtooth";
+      const start = soft ? 420 : 360;
+      const end = soft ? 620 : 520;
+      osc.frequency.setValueAtTime(start, now);
+      osc.frequency.exponentialRampToValueAtTime(end, now + 0.08);
+      osc.frequency.exponentialRampToValueAtTime(start * 0.85, now + 0.18);
+      const filter = ctx.createBiquadFilter();
+      filter.type = "bandpass";
+      filter.frequency.value = soft ? 700 : 560;
+      filter.Q.value = 1.2;
+      const amp = ctx.createGain();
+      const peak = soft ? 0.018 : 0.028;
+      amp.gain.setValueAtTime(0.0001, now);
+      amp.gain.exponentialRampToValueAtTime(peak, now + 0.02);
+      amp.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+      osc.connect(filter);
+      filter.connect(amp);
+      amp.connect(master);
+      osc.start(now);
+      osc.stop(now + 0.24);
+      if (!soft) tone(480, 0.1, 0.012, "square", 0.14);
     },
     wash(amount) {
       const ctx = context;

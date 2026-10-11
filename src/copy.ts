@@ -19,6 +19,7 @@ const LINES = [
   "Fresh air, delivered digitally. Ironic.",
   "Leave the chair. Stay for the tide.",
   "Your step count is on holiday.",
+  "The penguins approve of your pacing.",
 ];
 
 const MOOD_LINES: Partial<Record<string, string>> = {
@@ -63,14 +64,32 @@ export function discoveryQuip(event: BeachEvent): string | null {
   switch (event.kind) {
     case "touch":
       return null;
-    case "shell":
-      return "A shell. The beach tipped you.";
     case "uncover":
-      return "Something was under there.";
-    case "treasure":
-      return "Buried treasure. A bottle, and the tide for a note.";
-    case "rebury":
-      return "Tucked back under the sand.";
+      switch (event.itemKind) {
+        case "shell":
+          return `A ${event.label}. The beach tipped you.`;
+        case "coin":
+          return `A ${event.label} under the sand.`;
+        case "castle":
+          return `A buried ${event.label}. Someone was ambitious.`;
+        default: {
+          const leftover: never = event.itemKind;
+          return leftover;
+        }
+      }
+    case "collect":
+      switch (event.loot.kind) {
+        case "shell":
+          return `${event.loot.label}, pocketed. +${event.points}`;
+        case "coin":
+          return `${event.loot.label}. The tide pays in change. +${event.points}`;
+        case "castle":
+          return `${event.loot.label}, claimed. +${event.points}`;
+        default: {
+          const leftover: never = event.loot.kind;
+          return leftover;
+        }
+      }
     case "castle":
       return "A tiny castle. Ambitious for something knee high.";
     case "erased":
@@ -85,8 +104,35 @@ export function discoveryQuip(event: BeachEvent): string | null {
       return "Feet successfully buried. Retirement speedrun.";
     case "unbury":
       return "The sand let go. Toes report for duty.";
+    case "washin":
+      return `The tide left a ${event.label}.`;
+    case "rebury":
+      return "Tucked back under the sand.";
+    case "swept":
+      return "The wave took a souvenir.";
     case "gull":
       return event.first ? "A gull has opinions." : null;
+    case "penguin":
+      switch (event.mood) {
+        case "curious":
+          return "A penguin came to inspect your toes.";
+        case "startle":
+          return "You startled a penguin. It has notes.";
+        case "huddle":
+          return "Penguin huddle. Warmth protocol engaged.";
+        case "swim":
+          return "Into the wash. Tiny torpedo.";
+        case "peck":
+          return "A penguin pecked the sand for you.";
+        default: {
+          const leftover: never = event.mood;
+          return leftover;
+        }
+      }
+    case "penguin_find":
+      return `Penguin find. +${event.points}`;
+    case "penguin_friend":
+      return `You befriended a penguin. +${event.points}`;
     default: {
       const leftover: never = event;
       return leftover;

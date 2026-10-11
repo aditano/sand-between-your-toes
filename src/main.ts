@@ -39,17 +39,17 @@ function handleEvents(
 ): void {
   for (const event of events) {
     const line = discoveryQuip(event);
-    // Finds and critters should speak even if a streak line just fired.
     if (line) session.announce(line, true);
     switch (event.kind) {
-      case "shell":
-        audio.blip("shell");
+      case "uncover":
+        audio.blip(event.itemKind === "coin" ? "coin" : event.itemKind === "castle" ? "castle" : "shell");
         break;
-      case "treasure":
-        audio.blip("treasure");
+      case "collect":
+        session.collect(event.loot, event.points);
+        audio.blip(event.loot.kind);
         break;
       case "castle":
-        audio.blip("castle");
+        audio.blip("build");
         break;
       case "surge":
         audio.splash();
@@ -57,9 +57,24 @@ function handleEvents(
       case "gull":
         if (event.first) audio.cry();
         break;
+      case "penguin":
+        if (event.mood === "startle") audio.honk(false);
+        else if (event.mood === "curious" || event.mood === "huddle") audio.honk(true);
+        break;
+      case "penguin_find":
+        session.bonus(event.points, "penguin tip");
+        audio.blip("shell");
+        audio.honk(true);
+        break;
+      case "penguin_friend":
+        session.bonus(event.points, "penguin friend");
+        audio.blip("friend");
+        audio.honk(true);
+        break;
       case "touch":
-      case "uncover":
       case "rebury":
+      case "swept":
+      case "washin":
       case "erased":
       case "crab":
       case "bury":
@@ -97,7 +112,11 @@ function main(): void {
   let lastTheme = "";
 
   const coarse = window.matchMedia("(pointer: coarse)").matches;
-  hud.setHint(coarse ? "Drag your toes through the sand" : "Click and drag through the sand");
+  hud.setHint(
+    coarse
+      ? "Dig with your toes. Find shells, coins, and castles"
+      : "Click and dig. Find shells, coins, and castles",
+  );
   hud.setMuted(audio.muted);
   window.setTimeout(() => hud.hideHint(), 5600);
 
@@ -128,7 +147,6 @@ function main(): void {
 
   function chooseGrid(next: View): { cols: number; rows: number } {
     const area = next.w * next.h;
-    // Phones stay dense enough for crisp digs while keeping the iOS GPU calm.
     if (area < 420_000) return { cols: 104, rows: 78 };
     if (area < 1_100_000) return { cols: 120, rows: 90 };
     return { cols: 140, rows: 104 };
@@ -186,7 +204,6 @@ function main(): void {
     const dv = hit.v - finger.v;
     const dist = Math.hypot(du, dv);
     const force = Math.min(1, 0.35 + dist * 14);
-    // Scoop = upward pull. Build toward a castle when the drag climbs the beach.
     const climb = Math.max(0, -dv);
     finger.scoop = Math.min(1, finger.scoop * 0.78 + climb * 22);
     finger.u = hit.u;
@@ -237,7 +254,6 @@ function main(): void {
   canvas.addEventListener("pointerup", onUp);
   canvas.addEventListener("pointercancel", onUp);
   canvas.addEventListener("contextmenu", (event) => event.preventDefault());
-  // Older iOS Safari pinch-zoom gesture.
   document.addEventListener(
     "gesturestart",
     (event) => {

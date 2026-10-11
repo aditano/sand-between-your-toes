@@ -1,27 +1,26 @@
 # Sand Between Your Toes
 
-A small browser game about a golden-hour beach. Drag through the shore and the sand gives under your toes. A streak climbs, a vacation-brain meter fills, and the tide quietly edits whatever you leave behind.
+A small browser game about a golden-hour beach. Dig with your toes for shells, coins, and buried castles. Tiny African penguins waddle the shore, and the tide quietly edits whatever you leave behind.
 
 Play the live site: [aditano.github.io/sand-between-your-toes](https://aditano.github.io/sand-between-your-toes/)
 
-The page runs in the browser. It stores your best streak and mute setting in local storage on this device.
+The page runs in the browser. It stores your best wiggle streak, best score, and mute setting in local storage on this device.
 
 A calm sibling to [Touching Grass](https://aditano.github.io/touching-grass-simulator/).
 
 ## Features
 
 - Drag, swipe, or tap the beach. Sand dents under each touch, piles at the rim, and sifts as grains. Up to five touches count at once.
+- Dig to uncover buried loot: seashells of several kinds and rarities, copper to gold coins, and tiny castles under the sand. Scoop them up for points.
+- Some finds sit on the surface, some wait under the dunes, and waves wash in fresh shells. The tide can also rebury or sweep things away.
+- A score HUD tracks total points, best score, counts for shells, coins, and castles, plus a short discoveries line for recent finds.
+- A few African penguins live here. They waddle, huddle, dart into the wash, react to your toes, peck sand, leave tiny prints, and can tip you a bonus or befriend you.
 - Wet sand near the waterline looks darker and digs differently from the dry dunes farther up.
 - Waves wash in, leave foam, and smooth footprints. The tide rises and falls on its own.
-- The heads-up display tracks toe wiggles, the current streak, your best streak, a vacation mood, and how long you have been ashore.
-- A streak keeps growing while you dig and resets after a short pause. The best streak is saved on this device.
-- Vacation brain rises as you wiggle and slowly settles. The mood label moves from inbox to thawing, sandy, salty, melted, and gone.
-- Short lines show up on the first touch, on later digs, when you beat your streak, and at one, three, and ten minutes ashore.
-- Small discoveries: shells under the sand, a buried bottle, a tiny castle a wave can erase, a crab with opinions, and a seagull that crosses now and then.
-- Sunset light drifts from late afternoon toward dusk. Soft procedural audio covers waves, wind, sand scrape, gulls, and tiny find chimes. The mute button, or the M key, turns sound off. That choice is remembered.
-- Built for a phone held upright, including iPhone Safari: multi-touch, no scroll or zoom hijacks, capped pixel ratio, and a lean Canvas2D heightfield. Wider screens get a denser sand grid.
-- If the browser asks for reduced motion, waves, birds, and settling slow down.
-- If canvas is unavailable, the page says so.
+- The heads-up display also tracks toe wiggles, the current streak, your best streak, a vacation mood, and how long you have been ashore.
+- Soft procedural audio covers waves, wind, sand scrape, gulls, penguin chatter, and collect chimes. The mute button, or the M key, turns sound off.
+- Built for a phone held upright, including iPhone Safari: multi-touch, no scroll or zoom hijacks, capped pixel ratio, and a lean Canvas2D heightfield.
+- If the browser asks for reduced motion, waves, birds, penguins, and settling slow down.
 
 ## Run locally
 
@@ -47,16 +46,18 @@ Open [http://localhost:5173/sand-between-your-toes/](http://localhost:5173/sand-
 | --- | --- |
 | Drag or swipe | Dig, scoop, and wriggle toes through sand |
 | Tap or click | Plant a footprint |
+| Dig near a bump | Uncover shells, coins, or buried castles |
+| Dig on an exposed find | Collect it for points |
 | Hold and scoop | Pack a tiny castle |
-| Dig deep | Find shells or a buried bottle |
+| Dig gently near a penguin | Earn its curiosity, and maybe a friend bonus |
 | Mute button or M | Mute or unmute the shore |
 
 ## Tech stack
 
 - [Vite](https://vite.dev/) 8 serves the page in development and builds the static site.
 - [TypeScript](https://www.typescriptlang.org/) 5.8 types the source. The build runs `tsc --noEmit` before bundling.
-- Canvas2D draws the shore: a sand heightfield, wet and dry color, foam, waves, and little beach life.
-- The Web Audio API synthesizes wind, waves, sand scrape, gull cries, and find chimes.
+- Canvas2D draws the shore: a sand heightfield, wet and dry color, foam, waves, loot, penguins, and little beach life.
+- The Web Audio API synthesizes wind, waves, sand scrape, gull cries, penguin honks, and find chimes.
 - [GitHub Actions](.github/workflows/pages.yml) publishes `dist/` to GitHub Pages on every push to `main`.
 
 ## License

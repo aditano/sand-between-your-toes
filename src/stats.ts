@@ -1,5 +1,11 @@
+import {
+  emptyCollection,
+  noteCollect,
+  type BeachLoot,
+  type CollectionCounts,
+} from "./collectibles";
+import { BEST_KEY, SCORE_BEST_KEY, STREAK_WINDOW_MS } from "./constants";
 import { FIRST_TOUCH, milestoneQuip, moodQuip, pickQuip, streakQuip } from "./copy";
-import { BEST_KEY, STREAK_WINDOW_MS } from "./constants";
 
 export type Mood = "inbox" | "thawing" | "sandy" | "salty" | "melted" | "gone";
 
@@ -7,9 +13,13 @@ export type StatsView = {
   wiggles: number;
   streak: number;
   best: number;
+  score: number;
+  scoreBest: number;
   mood: Mood;
   vacation: number;
   ashore: string;
+  collection: CollectionCounts;
+  recent: string[];
 };
 
 export function moodFor(value: number): Mood {
@@ -49,8 +59,12 @@ export class Session {
   wiggles = 0;
   streak = 0;
   best = readNum(BEST_KEY);
+  score = 0;
+  scoreBest = readNum(SCORE_BEST_KEY);
   vacation = 8;
   ashoreSeconds = 0;
+  collection = emptyCollection();
+  recent: string[] = [];
 
   private lastTouch = 0;
   private lastQuipAt = -10;
@@ -82,6 +96,17 @@ export class Session {
     if (this.streak > 0) this.lastTouch = now;
   }
 
+  collect(loot: BeachLoot, points: number): void {
+    noteCollect(this.collection, loot);
+    this.addScore(points);
+    this.pushRecent(loot.label);
+  }
+
+  bonus(points: number, label: string): void {
+    this.addScore(points);
+    this.pushRecent(label);
+  }
+
   announce(text: string, force: boolean): void {
     if (!force && this.ashoreSeconds - this.lastQuipAt < 1.15) return;
     this.lastQuipAt = this.ashoreSeconds;
@@ -93,10 +118,27 @@ export class Session {
       wiggles: this.wiggles,
       streak: this.streak,
       best: this.best,
+      score: this.score,
+      scoreBest: this.scoreBest,
       mood: moodFor(this.vacation),
       vacation: this.vacation,
       ashore: formatAshore(this.ashoreSeconds),
+      collection: this.collection,
+      recent: this.recent.slice(),
     };
+  }
+
+  private addScore(points: number): void {
+    this.score += points;
+    if (this.score > this.scoreBest) {
+      this.scoreBest = this.score;
+      writeNum(SCORE_BEST_KEY, this.scoreBest);
+    }
+  }
+
+  private pushRecent(label: string): void {
+    this.recent.unshift(label);
+    if (this.recent.length > 6) this.recent.length = 6;
   }
 
   private noteMood(): void {
@@ -104,7 +146,6 @@ export class Session {
     if (this.seenMoods.has(mood)) return;
     this.seenMoods.add(mood);
     const line = moodQuip(mood);
-    // Mood lines are rare milestones. Let them interrupt the cooldown.
     if (line) this.announce(line, true);
   }
 
@@ -114,7 +155,6 @@ export class Session {
     this.streak += 1;
     this.wiggles += 1;
     this.lastTouch = now;
-    // Presses count more than strokes so a long swipe does not empty the inbox instantly.
     const bump = fromPress ? 3.4 : 1.15;
     this.vacation = Math.min(100, this.vacation + bump * (1 - this.vacation / 140));
 
