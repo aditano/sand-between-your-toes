@@ -68,6 +68,8 @@ export type BeachLoot = {
   /** Collect pop animation 1 -> 0. */
   spark: number;
   angle: number;
+  /** True after a penguin tip has already paid out for this find. */
+  tipped: boolean;
 };
 
 export type CollectionCounts = {
@@ -201,6 +203,7 @@ export function makeLoot(
     wash: opts.wash ?? 0,
     spark: 0,
     angle: rng() * Math.PI * 2,
+    tipped: false,
   };
 }
 

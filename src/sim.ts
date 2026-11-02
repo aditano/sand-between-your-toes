@@ -709,7 +709,9 @@ export function createSim(): ShoreSim {
           if (before > 0.22 && best.buried <= 0.22) {
             events.push({ kind: "uncover", itemKind: best.kind, label: best.label });
           }
-          // Small tip for helping the dig without auto-collecting.
+          // One tip per find so pecking the same spot cannot farm points.
+          if (best.tipped) return 0;
+          best.tipped = true;
           return 5;
         },
       });
