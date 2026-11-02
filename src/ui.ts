@@ -40,6 +40,7 @@ export function bindHud(): Hud {
   const mood = must<HTMLElement>("#mood");
   const ashore = must<HTMLElement>("#ashore");
   const fill = must<HTMLElement>("#vacay-fill");
+  const vacay = must<HTMLElement>("#vacay");
   const mute = must<HTMLButtonElement>("#mute");
   const theme = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
 
@@ -152,6 +153,7 @@ export function bindHud(): Hud {
       const rounded = Math.round(view.vacation);
       if (rounded !== lastVacay) {
         fill.style.width = `${rounded}%`;
+        vacay.setAttribute("aria-valuenow", String(rounded));
         lastVacay = rounded;
       }
     },
