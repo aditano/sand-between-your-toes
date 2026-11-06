@@ -124,7 +124,7 @@ export function tickPenguins(birds: Penguin[], input: PenguinTickInput): Penguin
           setMood(bird, "friend", 2.2);
           bird.friended = true;
           events.push({ kind: "penguin_friend", points: 25 });
-        } else if (bird.friended && bird.friend >= 1 && bird.mood !== "friend") {
+        } else if (bird.friended && bird.friend >= 1) {
           // Already befriended: soft greeting only, no repeat points.
           setMood(bird, "friend", 1.4);
         } else if (bird.mood !== "curious") {
