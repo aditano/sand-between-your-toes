@@ -21,6 +21,8 @@ export type Penguin = {
   targetU: number;
   targetV: number;
   friend: number;
+  /** True after the one-time friend bonus has been awarded. */
+  friended: boolean;
   bob: number;
 };
 
@@ -48,6 +50,7 @@ export function spawnColony(rng: () => number): Penguin[] {
       targetU: u + (rng() - 0.5) * 0.2,
       targetV: v,
       friend: 0,
+      friended: false,
       bob: 0,
     });
   }
@@ -117,10 +120,13 @@ export function tickPenguins(birds: Penguin[], input: PenguinTickInput): Penguin
         bird.mood !== "friend"
       ) {
         bird.friend = Math.min(1, bird.friend + 0.08);
-        if (bird.friend >= 1) {
+        if (bird.friend >= 1 && !bird.friended) {
           setMood(bird, "friend", 2.2);
-          bird.friend = 0.55;
+          bird.friended = true;
           events.push({ kind: "penguin_friend", points: 25 });
+        } else if (bird.friended && bird.friend >= 1) {
+          // Already befriended: soft greeting only, no repeat points.
+          setMood(bird, "friend", 1.4);
         } else if (bird.mood !== "curious") {
           setMood(bird, "curious", 1.6, input.digNear.u < bird.u ? -1 : 1);
           bird.targetU = input.digNear.u;

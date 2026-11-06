@@ -370,16 +370,56 @@ export function createSim(): ShoreSim {
     return { kind: "castle" };
   }
 
+  function sampleAt(
+    arr: Float32Array,
+    u: number,
+    v: number,
+    srcCols: number,
+    srcRows: number,
+  ): number {
+    const x = clamp(u * (srcCols - 1), 0, srcCols - 1);
+    const y = clamp(v * (srcRows - 1), 0, srcRows - 1);
+    const x0 = Math.floor(x);
+    const y0 = Math.floor(y);
+    const x1 = Math.min(srcCols - 1, x0 + 1);
+    const y1 = Math.min(srcRows - 1, y0 + 1);
+    const tx = x - x0;
+    const ty = y - y0;
+    const a = arr[idx(x0, y0, srcCols)];
+    const b = arr[idx(x1, y0, srcCols)];
+    const c = arr[idx(x0, y1, srcCols)];
+    const d = arr[idx(x1, y1, srcCols)];
+    return a * (1 - tx) * (1 - ty) + b * tx * (1 - ty) + c * (1 - tx) * ty + d * tx * ty;
+  }
+
   function resize(nextCols: number, nextRows: number): void {
     if (nextCols === cols && nextRows === rows) return;
+    const prevCols = cols;
+    const prevRows = rows;
+    const prevHeight = height;
+    const prevWet = wet;
+    const prevBase = base;
+
     cols = nextCols;
     rows = nextRows;
     height = new Float32Array(cols * rows);
     wet = new Float32Array(cols * rows);
     base = new Float32Array(cols * rows);
     fillBase(base, cols, rows);
-    height.set(base);
-    fillWet(wet, cols, rows, tide);
+
+    // Resample digs and dampness in UV space so a grid change does not wipe the beach.
+    for (let y = 0; y < rows; y += 1) {
+      for (let x = 0; x < cols; x += 1) {
+        const u = (x + 0.5) / cols;
+        const v = (y + 0.5) / rows;
+        const i = idx(x, y, cols);
+        const oldHeight = sampleAt(prevHeight, u, v, prevCols, prevRows);
+        const oldBase = sampleAt(prevBase, u, v, prevCols, prevRows);
+        const oldWet = sampleAt(prevWet, u, v, prevCols, prevRows);
+        height[i] = clamp(base[i] + (oldHeight - oldBase), 0.05, 1.35);
+        wet[i] = clamp(oldWet, 0, 1);
+      }
+    }
   }
 
   const api: ShoreSim = {
@@ -709,7 +749,9 @@ export function createSim(): ShoreSim {
           if (before > 0.22 && best.buried <= 0.22) {
             events.push({ kind: "uncover", itemKind: best.kind, label: best.label });
           }
-          // Small tip for helping the dig without auto-collecting.
+          // One tip per find so pecking the same spot cannot farm points.
+          if (best.tipped) return 0;
+          best.tipped = true;
           return 5;
         },
       });

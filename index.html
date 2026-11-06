@@ -104,13 +104,13 @@
           />
         </svg>
       </button>
-      <p class="hint" id="hint">Dig through the sand</p>
+      <p class="hint" id="hint" role="status">Dig through the sand</p>
       <footer class="hud">
         <p class="quip" id="quip" aria-live="polite"></p>
         <div class="card">
           <div class="score-row" role="group" aria-label="Beach haul">
             <div class="stat score-stat">
-              <span class="stat-value" id="score">0</span>
+              <span class="stat-value" id="score" aria-live="polite" aria-atomic="true">0</span>
               <span class="stat-label">points</span>
               <span class="best" id="score-best"></span>
             </div>
@@ -151,7 +151,17 @@
               <span class="stat-value" id="ashore">0:00</span>
               <span class="stat-label">ashore</span>
             </div>
-            <div class="vacay" aria-hidden="true"><span id="vacay-fill"></span></div>
+            <div
+              class="vacay"
+              id="vacay"
+              role="progressbar"
+              aria-label="Vacation mood"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              aria-valuenow="0"
+            >
+              <span id="vacay-fill"></span>
+            </div>
           </div>
         </div>
       </footer>
